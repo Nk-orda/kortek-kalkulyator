@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Кортек Калькулятор</title>
+<meta name="theme-color" content="#0b5e6b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Кортек">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b5e6b'/%3E%3Ctext x='50' y='66' font-size='52' font-family='Arial,sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b5e6b'/%3E%3Ctext x='50' y='66' font-size='52' font-family='Arial,sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#f3f6f7;
+    --card:#ffffff;
+    --text:#14262b;
+    --muted:#5b7278;
+    --accent:#0b5e6b;
+    --accent-2:#0e7c8c;
+    --border:#e1e8ea;
+    --result-bg:#eef8f6;
+    --result-border:#bfe3da;
+    --danger:#b3441f;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(15,40,45,.08), 0 4px 14px rgba(15,40,45,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1a1c;
+      --card:#16262a;
+      --text:#e7f1f2;
+      --muted:#8aa3a8;
+      --accent:#2fb6c4;
+      --accent-2:#3fd0c9;
+      --border:#243638;
+      --result-bg:#123030;
+      --result-border:#1f4a47;
+      --danger:#ff9068;
+      --shadow:0 1px 3px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  header.topbar{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:#fff;
+    padding:18px 16px calc(18px + env(safe-area-inset-top,0px));
+    padding-top:calc(18px + env(safe-area-inset-top,0px));
+    display:flex;
+    align-items:center;
+    gap:12px;
+    box-shadow:var(--shadow);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .back-btn{
+    background:rgba(255,255,255,.18);
+    border:none;
+    color:#fff;
+    font-size:15px;
+    padding:8px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    flex-shrink:0;
+  }
+  .back-btn:active{background:rgba(255,255,255,.32);}
+  .topbar-titles{min-width:0;}
+  .topbar-titles h1{font-size:18px;margin:0;line-height:1.25;}
+  .topbar-titles p{font-size:12.5px;margin:2px 0 0;opacity:.85;}
+  main{
+    flex:1;
+    width:100%;
+    max-width:640px;
+    margin:0 auto;
+    padding:16px 16px 32px;
+  }
+  footer{
+    text-align:center;
+    font-size:12px;
+    color:var(--muted);
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));
+  }
+  footer a{color:var(--accent-2);text-decoration:none;}
+
+  /* Dashboard */
+  .dash-intro{color:var(--muted);font-size:14px;margin:2px 0 18px;}
+  .calc-list{display:flex;flex-direction:column;gap:12px;list-style:none;margin:0;padding:0;}
+  .calc-item{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    cursor:pointer;
+    text-align:left;
+    width:100%;
+    color:inherit;
+    font:inherit;
+  }
+  .calc-item:active{transform:scale(.99);}
+  .calc-item .code{
+    font-weight:700;
+    font-size:15.5px;
+    color:var(--accent);
+  }
+  @media (prefers-color-scheme: dark){ .calc-item .code{color:var(--accent-2);} }
+  .calc-item .name{font-size:13px;color:var(--muted);margin-top:2px;}
+  .chev{color:var(--muted);font-size:20px;flex-shrink:0;}
+
+  /* Calculator page */
+  .section-title{
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--muted);
+    margin:22px 0 10px;
+  }
+  .section-title:first-child{margin-top:0;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px;
+  }
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-size:13.5px;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--text);
+  }
+  .field .hint{font-size:12px;color:var(--muted);margin-top:5px;}
+  .field input[type=number]{
+    width:100%;
+    padding:11px 12px;
+    font-size:16px;
+    border:1.5px solid var(--border);
+    border-radius:10px;
+    background:var(--bg);
+    color:var(--text);
+    outline:none;
+  }
+  .field input[type=number]:focus{border-color:var(--accent-2);}
+  .const-row{display:flex;align-items:center;gap:10px;}
+  .const-row input{flex:1;}
+  .const-unit{font-size:13px;color:var(--muted);white-space:nowrap;}
+  .reset-btn{
+    margin-top:12px;
+    background:none;
+    border:1px solid var(--border);
+    color:var(--muted);
+    font-size:12.5px;
+    padding:7px 12px;
+    border-radius:9px;
+    cursor:pointer;
+  }
+  .reset-btn:active{background:var(--bg);}
+
+  .results{display:flex;flex-direction:column;gap:10px;}
+  .result-card{
+    background:var(--result-bg);
+    border:1px solid var(--result-border);
+    border-radius:var(--radius);
+    padding:14px 16px;
+  }
+  .result-group-title{font-size:13.5px;font-weight:700;color:var(--accent);margin:0 0 8px;}
+  @media (prefers-color-scheme: dark){ .result-group-title{color:var(--accent-2);} }
+  .result-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    padding:6px 0;
+  }
+  .result-row + .result-row{border-top:1px dashed var(--result-border);}
+  .result-row .label{font-size:13.5px;color:var(--text);}
+  .result-row .value{font-size:16px;font-weight:700;color:var(--accent);white-space:nowrap;}
+  @media (prefers-color-scheme: dark){ .result-row .value{color:var(--accent-2);} }
+  .result-row .value .unit{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px;}
+
+  .example-note{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:14px;
+    line-height:1.5;
+  }
+  details.settings{margin-top:22px;}
+  details.settings > summary{
+    cursor:pointer;
+    font-size:13px;
+    font-weight:700;
+    color:var(--muted);
+    list-style:none;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  details.settings > summary::-webkit-details-marker{display:none;}
+  details.settings > summary .arrow{transition:transform .15s;font-size:11px;}
+  details.settings[open] > summary .arrow{transform:rotate(90deg);}
+  details.settings .card{margin-top:10px;}
+</style>
+</head>
+<body>
+
+<header class="topbar" id="topbar"></header>
+<main id="app"></main>
+<footer>© Support: <a href="mailto:nursultan.kadirov@ten.com">nursultan.kadirov@ten.com</a></footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------------------------------------------------------------
+   1. CALCULATOR REGISTRY
+   Add a new calculator by pushing a new entry into CALCULATORS.
+   Each "type" (pipe / powder / mix) has a generic render+compute
+   handler below, so a new calculator that reuses an existing formula
+   shape (e.g. another "mix" product) needs zero new UI code.
+--------------------------------------------------------------------- */
+
+var CALCULATORS = [
+  {
+    id: "337w",
+    code: "VpCI-337 W",
+    title: "Pipe length & volume calculator",
+    type: "pipe",
+    defaults: { rate: 1.0 }
+  },
+  {
+    id: "609",
+    code: "VpCI-609",
+    title: "Powder Dosage Volume Calculator",
+    type: "powder",
+    defaults: { rate: 28 }
+  },
+  {
+    id: "418",
+    code: "VpCI-418",
+    title: "Dosage Volume Calculator for Mixing with Water",
+    type: "mix",
+    defaults: { light: 5, normal: 7, heavy: 10 }
+  },
+  {
+    id: "414",
+    code: "VpCI-414",
+    title: "Dosage Volume Calculator for Mixing with Water",
+    type: "mix",
+    defaults: { light: 5, normal: 10, heavy: 20 }
+  }
+];
+
+/* ---------------------------------------------------------------------
+   2. SETTINGS PERSISTENCE (localStorage — device-only, no cloud)
+--------------------------------------------------------------------- */
+
+var STORAGE_KEY = "cortec_calculator_settings_v1";
+
+function loadAllSettings(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function saveAllSettings(all){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); }catch(e){}
+}
+function getConstants(calc){
+  var all = loadAllSettings();
+  var saved = all[calc.id] || {};
+  var merged = {};
+  for (var k in calc.defaults) merged[k] = (saved[k] !== undefined && saved[k] !== null && saved[k] !== "") ? Number(saved[k]) : calc.defaults[k];
+  return merged;
+}
+function setConstant(calc, key, value){
+  var all = loadAllSettings();
+  if (!all[calc.id]) all[calc.id] = {};
+  all[calc.id][key] = value;
+  saveAllSettings(all);
+}
+function resetConstants(calc){
+  var all = loadAllSettings();
+  delete all[calc.id];
+  saveAllSettings(all);
+}
+
+/* ---------------------------------------------------------------------
+   3. NUMBER FORMATTING
+--------------------------------------------------------------------- */
+
+function fmt(num, decimals){
+  if (num === null || num === undefined || isNaN(num)) return "—";
+  var s = num.toFixed(decimals);
+  if (s.indexOf(".") !== -1) s = s.replace(/0+$/, "").replace(/\.$/, "");
+  var parts = s.split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return parts.join(".");
+}
+
+/* ---------------------------------------------------------------------
+   4. ROUTER
+--------------------------------------------------------------------- */
+
+function parseHash(){
+  var h = location.hash.replace(/^#\/?/, "");
+  if (!h) return { route: "dashboard" };
+  var parts = h.split("/");
+  if (parts[0] === "calc" && parts[1]) return { route: "calc", id: parts[1] };
+  return { route: "dashboard" };
+}
+
+window.addEventListener("hashchange", render);
+window.addEventListener("DOMContentLoaded", render);
+
+function goHome(){ location.hash = "#/"; }
+function goCalc(id){ location.hash = "#/calc/" + id; }
+
+/* ---------------------------------------------------------------------
+   5. RENDER: TOPBAR
+--------------------------------------------------------------------- */
+
+function renderTopbar(calc){
+  var bar = document.getElementById("topbar");
+  bar.innerHTML = "";
+  if (calc){
+    var back = document.createElement("button");
+    back.className = "back-btn";
+    back.innerHTML = "&larr; Артқа";
+    back.onclick = goHome;
+    bar.appendChild(back);
+
+    var titles = document.createElement("div");
+    titles.className = "topbar-titles";
+    titles.innerHTML = "<h1>" + escapeHtml(calc.code) + "</h1><p>" + escapeHtml(calc.title) + "</p>";
+    bar.appendChild(titles);
+  } else {
+    var titles2 = document.createElement("div");
+    titles2.className = "topbar-titles";
+    titles2.innerHTML = "<h1>Кортек Калькулятор</h1><p>Cortec VpCI дозалау калькуляторлары</p>";
+    bar.appendChild(titles2);
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
+  });
+}
+
+/* ---------------------------------------------------------------------
+   6. RENDER: DASHBOARD
+--------------------------------------------------------------------- */
+
+function renderDashboard(){
+  renderTopbar(null);
+  var app = document.getElementById("app");
+  app.innerHTML = "";
+
+  var intro = document.createElement("p");
+  intro.className = "dash-intro";
+  intro.textContent = "Есептегішті таңдаңыз:";
+  app.appendChild(intro);
+
+  var list = document.createElement("ul");
+  list.className = "calc-list";
+
+  CALCULATORS.forEach(function(calc){
+    var li = document.createElement("li");
+    var btn = document.createElement("button");
+    btn.className = "calc-item";
+    btn.onclick = function(){ goCalc(calc.id); };
+    btn.innerHTML =
+      '<div>' +
+        '<div class="code">' + escapeHtml(calc.code) + '</div>' +
+        '<div class="name">' + escapeHtml(calc.title) + '</div>' +
+      '</div>' +
+      '<div class="chev">&rsaquo;</div>';
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+
+  app.appendChild(list);
+}
+
+/* ---------------------------------------------------------------------
+   7. RENDER: CALCULATOR PAGE (generic shell)
+--------------------------------------------------------------------- */
+
+function renderCalcPage(id){
+  var calc = CALCULATORS.filter(function(c){ return c.id === id; })[0];
+  if (!calc){ goHome(); return; }
+
+  renderTopbar(calc);
+  var app = document.getElementById("app");
+  app.innerHTML = "";
+
+  var handler = TYPE_HANDLERS[calc.type];
+  if (!handler){
+    app.innerHTML = '<div class="card">Бұл калькулятор түрі әлі қосылмаған.</div>';
+    return;
+  }
+  handler(calc, app);
+}
+
+/* ---------------------------------------------------------------------
+   8. TYPE HANDLERS
+   Each handler builds inputs + editable constants + live results
+   for one calculator "shape". New calculators of the same shape
+   reuse these as-is.
+--------------------------------------------------------------------- */
+
+var TYPE_HANDLERS = {};
+
+/* ---- 8a. "pipe" — VpCI-337 W -------------------------------------- */
+
+TYPE_HANDLERS.pipe = function(calc, app){
+  var state = { size: "", length: "" };
+  var constants = getConstants(calc);
+
+  app.appendChild(sectionTitle("Кіріс мәліметтер"));
+  var inputsCard = card();
+  inputsCard.appendChild(numberField("Құбыр өлшемі (Pipe Size, дюйм \")", state, "size", "0.1", function(){ update(); }, "мыс. 3"));
+  inputsCard.appendChild(numberField("Ұзындығы (Length, метр)", state, "length", "0.1", function(){ update(); }, "мыс. 158"));
+  app.appendChild(inputsCard);
+
+  app.appendChild(sectionTitle("Нәтиже"));
+  var resultsWrap = document.createElement("div");
+  resultsWrap.className = "results";
+  app.appendChild(resultsWrap);
+
+  var note = document.createElement("p");
+  note.className = "example-note";
+  note.textContent = "Тексеру мысалы: Size=3\", Length=158 m → Diameter=76.2 mm, Volume=0.72 m³, Required=0.72 L";
+  app.appendChild(note);
+
+  app.appendChild(settingsBlock(calc, constants, [
+    { key: "rate", label: "Rate (L VpCI-337W / м³)", step: "0.01" }
+  ], function(){ constants = getConstants(calc); update(); }));
+
+  function update(){
+    var sizeIn = parseFloat(state.size) || 0;
+    var lengthM = parseFloat(state.length) || 0;
+    var diameterMm = sizeIn * 25.4;
+    var volumeM3 = Math.PI * Math.pow((diameterMm / 1000 / 2), 2) * lengthM;
+    var requiredL = volumeM3 * constants.rate;
+
+    resultsWrap.innerHTML = "";
+    resultsWrap.appendChild(resultCard([
+      { label: "Құбыр диаметрі (Diameter)", value: fmt(diameterMm, 2), unit: "мм" },
+      { label: "Құбыр көлемі (Volume)", value: fmt(volumeM3, 3), unit: "м³" },
+      { label: "Қажетті " + calc.code, value: fmt(requiredL, 3), unit: "л" }
+    ]));
+  }
+  update();
+};
+
+/* ---- 8b. "powder" — VpCI-609 --------------------------------------- */
+
+TYPE_HANDLERS.powder = function(calc, app){
+  var state = { water: "" };
+  var constants = getConstants(calc);
+
+  app.appendChild(sectionTitle("Кіріс мәліметтер"));
+  var inputsCard = card();
+  inputsCard.appendChild(numberField("Судың көлемі (Volume of Water, л)", state, "water", "0.1", function(){ update(); }, "мыс. 58"));
+  app.appendChild(inputsCard);
+
+  app.appendChild(sectionTitle("Нәтиже"));
+  var resultsWrap = document.createElement("div");
+  resultsWrap.className = "results";
+  app.appendChild(resultsWrap);
+
+  var note = document.createElement("p");
+  note.className = "example-note";
+  note.textContent = "Тексеру мысалы: Water=58 L → Grams=1624 г, KG=1.62 кг";
+  app.appendChild(note);
+
+  app.appendChild(settingsBlock(calc, constants, [
+    { key: "rate", label: "Rate (г / л су)", step: "0.1" }
+  ], function(){ constants = getConstants(calc); update(); }));
+
+  function update(){
+    var waterL = parseFloat(state.water) || 0;
+    var grams = waterL * constants.rate;
+    var kg = grams / 1000;
+
+    resultsWrap.innerHTML = "";
+    resultsWrap.appendChild(resultCard([
+      { label: "Ұнтақ салмағы (Grams)", value: fmt(grams, 1), unit: "г" },
+      { label: "Килограмм (KG)", value: fmt(kg, 3), unit: "кг" }
+    ]));
+  }
+  update();
+};
+
+/* ---- 8c. "mix" — VpCI-418 / VpCI-414 -------------------------------- */
+
+TYPE_HANDLERS.mix = function(calc, app){
+  var state = { water: "" };
+  var constants = getConstants(calc);
+  var LEVELS = [
+    { key: "light", label: "Light Cleaning" },
+    { key: "normal", label: "Normal Cleaning" },
+    { key: "heavy", label: "Heavy Cleaning" }
+  ];
+
+  app.appendChild(sectionTitle("Кіріс мәліметтер"));
+  var inputsCard = card();
+  inputsCard.appendChild(numberField("Судың көлемі (Volume of Water, л)", state, "water", "0.1", function(){ update(); }, "мыс. 20"));
+  app.appendChild(inputsCard);
+
+  app.appendChild(sectionTitle("Нәтиже"));
+  var resultsWrap = document.createElement("div");
+  resultsWrap.className = "results";
+  app.appendChild(resultsWrap);
+
+  var note = document.createElement("p");
+  note.className = "example-note";
+  note.textContent = "Пайыздар " + calc.code + " үшін бөлек бапталады, басқа калькулятормен бірікпейді.";
+  app.appendChild(note);
+
+  app.appendChild(settingsBlock(calc, constants, LEVELS.map(function(l){
+    return { key: l.key, label: l.label + " (%)", step: "0.1" };
+  }), function(){ constants = getConstants(calc); update(); }));
+
+  function update(){
+    var waterL = parseFloat(state.water) || 0;
+
+    resultsWrap.innerHTML = "";
+    LEVELS.forEach(function(level){
+      var pct = constants[level.key];
+      var mL = waterL * 1000 * (pct / 100);
+      var L = mL / 1000;
+      var rc = resultCard([
+        { label: "Қоспа (Additive, мл)", value: fmt(mL, 1), unit: "мл" },
+        { label: "Қоспа (Additive, л)", value: fmt(L, 3), unit: "л" }
+      ], level.label + " (" + fmt(pct, 2) + "%)");
+      resultsWrap.appendChild(rc);
+    });
+  }
+  update();
+};
+
+/* ---------------------------------------------------------------------
+   9. SHARED UI BUILDERS
+--------------------------------------------------------------------- */
+
+function sectionTitle(text){
+  var h = document.createElement("div");
+  h.className = "section-title";
+  h.textContent = text;
+  return h;
+}
+
+function card(){
+  var d = document.createElement("div");
+  d.className = "card";
+  return d;
+}
+
+function numberField(labelText, state, key, step, onInput, placeholder){
+  var wrap = document.createElement("div");
+  wrap.className = "field";
+  var label = document.createElement("label");
+  label.textContent = labelText;
+  var input = document.createElement("input");
+  input.type = "number";
+  input.step = step || "any";
+  input.inputMode = "decimal";
+  input.placeholder = placeholder || "";
+  input.value = state[key];
+  input.addEventListener("input", function(){
+    state[key] = input.value;
+    onInput();
+  });
+  wrap.appendChild(label);
+  wrap.appendChild(input);
+  return wrap;
+}
+
+function resultCard(rows, groupTitle){
+  var d = document.createElement("div");
+  d.className = "result-card";
+  if (groupTitle){
+    var gt = document.createElement("div");
+    gt.className = "result-group-title";
+    gt.textContent = groupTitle;
+    d.appendChild(gt);
+  }
+  rows.forEach(function(r){
+    var row = document.createElement("div");
+    row.className = "result-row";
+    row.innerHTML =
+      '<span class="label">' + escapeHtml(r.label) + '</span>' +
+      '<span class="value">' + escapeHtml(r.value) + '<span class="unit">' + escapeHtml(r.unit) + '</span></span>';
+    d.appendChild(row);
+  });
+  return d;
+}
+
+function settingsBlock(calc, constants, fields, onChange){
+  var details = document.createElement("details");
+  details.className = "settings";
+  var summary = document.createElement("summary");
+  summary.innerHTML = '<span class="arrow">&#9656;</span> Баптаулар (Rate / Percentage)';
+  details.appendChild(summary);
+
+  var c = card();
+  fields.forEach(function(f){
+    var wrap = document.createElement("div");
+    wrap.className = "field";
+    var label = document.createElement("label");
+    label.textContent = f.label;
+    var row = document.createElement("div");
+    row.className = "const-row";
+    var input = document.createElement("input");
+    input.type = "number";
+    input.step = f.step || "any";
+    input.inputMode = "decimal";
+    input.value = constants[f.key];
+    input.addEventListener("input", function(){
+      var v = parseFloat(input.value);
+      if (!isNaN(v)) setConstant(calc, f.key, v);
+      onChange();
+    });
+    row.appendChild(input);
+    wrap.appendChild(label);
+    wrap.appendChild(row);
+    c.appendChild(wrap);
+  });
+
+  var resetBtn = document.createElement("button");
+  resetBtn.type = "button";
+  resetBtn.className = "reset-btn";
+  resetBtn.textContent = "Әдепкі мәндерге қайтару";
+  resetBtn.onclick = function(){
+    resetConstants(calc);
+    renderCalcPage(calc.id);
+  };
+  c.appendChild(resetBtn);
+
+  var hint = document.createElement("p");
+  hint.className = "hint";
+  hint.textContent = "Бұл мәндер осы құрылғыда сақталады.";
+  c.appendChild(hint);
+
+  details.appendChild(c);
+  return details;
+}
+
+/* ---------------------------------------------------------------------
+   10. MAIN RENDER DISPATCH
+--------------------------------------------------------------------- */
+
+function render(){
+  var r = parseHash();
+  if (r.route === "calc") renderCalcPage(r.id);
+  else renderDashboard();
+}
+
+render();
+
+/* Service worker: оффлайн жұмыс және "Add to Home Screen"-нің толық
+   орнатылатын қосымша ретінде танылуы үшін. http(s) хостингте ғана
+   жұмыс істейді (file:// ашқанда браузер шектеуімен өшіп қалады,
+   бұл қалыпты жағдай — қалған функционалға әсер етпейді). */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+
+})();
+</script>
+</body>
+</html>

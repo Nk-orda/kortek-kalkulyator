@@ -1,0 +1,25 @@
+{
+  "name": "Кортек Калькулятор",
+  "short_name": "Кортек",
+  "description": "Cortec VpCI өнімдерін дозалауға арналған калькуляторлар жинағы",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f6f7",
+  "theme_color": "#0b5e6b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
