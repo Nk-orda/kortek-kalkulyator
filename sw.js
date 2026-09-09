@@ -1,5 +1,5 @@
 /* Кортек Калькулятор — оффлайн кэш үшін қарапайым service worker */
-var CACHE_NAME = "kortek-calc-v1";
+var CACHE_NAME = "kortek-calc-v2";
 var FILES_TO_CACHE = [
   "./",
   "./index.html",

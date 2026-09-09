@@ -42,15 +42,64 @@
       --shadow:0 1px 3px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
     }
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
+  html{overscroll-behavior-y:contain;}
   body{
     background:var(--bg);
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     min-height:100vh;
+    min-height:100dvh;
     display:flex;
     flex-direction:column;
+    overscroll-behavior-y:contain;
+  }
+  button{touch-action:manipulation;-webkit-user-select:none;user-select:none;font-family:inherit;}
+  input{touch-action:manipulation;}
+
+  /* Install banner (Android: real install prompt / iOS: instructions) */
+  .install-bar{
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    position:sticky;
+    top:0;
+    z-index:9;
+  }
+  .install-bar .install-icon{font-size:20px;flex-shrink:0;}
+  .install-bar .install-text{flex:1;font-size:12.5px;line-height:1.4;color:var(--text);}
+  .install-bar .install-text b{color:var(--accent);}
+  @media (prefers-color-scheme: dark){ .install-bar .install-text b{color:var(--accent-2);} }
+  .install-bar .install-btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    font-size:12.5px;
+    font-weight:700;
+    padding:8px 12px;
+    border-radius:9px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .install-bar .install-close{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:18px;
+    line-height:1;
+    padding:4px 6px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  main{animation:pageIn .18s ease;}
+  @keyframes pageIn{
+    from{opacity:0;transform:translateY(6px);}
+    to{opacity:1;transform:translateY(0);}
   }
   header.topbar{
     background:linear-gradient(135deg,var(--accent),var(--accent-2));
@@ -227,6 +276,12 @@
 <body>
 
 <header class="topbar" id="topbar"></header>
+<div class="install-bar" id="installBar" hidden>
+  <span class="install-icon">📲</span>
+  <span class="install-text" id="installText"></span>
+  <button class="install-btn" id="installBtn" hidden>Орнату</button>
+  <button class="install-close" id="installClose" aria-label="Жабу">&times;</button>
+</div>
 <main id="app"></main>
 <footer>© Support: <a href="mailto:nursultan.kadirov@ten.com">nursultan.kadirov@ten.com</a></footer>
 
@@ -679,6 +734,11 @@ function render(){
   var r = parseHash();
   if (r.route === "calc") renderCalcPage(r.id);
   else renderDashboard();
+
+  var app = document.getElementById("app");
+  app.style.animation = "none";
+  void app.offsetWidth;
+  app.style.animation = "";
 }
 
 render();
@@ -692,6 +752,69 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
     navigator.serviceWorker.register("sw.js").catch(function(){});
   });
 }
+
+/* ---------------------------------------------------------------------
+   11. INSTALL BANNER
+   Android/Chrome: captures the native beforeinstallprompt event and
+   offers a real "Орнату" (Install) button instead of relying on the
+   browser's own menu. iOS Safari has no such API, so it gets a short
+   instruction line instead. Hidden entirely once already installed
+   (standalone display mode) or after the user dismisses it once.
+--------------------------------------------------------------------- */
+
+(function initInstallBanner(){
+  var DISMISS_KEY = "cortec_install_banner_dismissed_v1";
+  var bar = document.getElementById("installBar");
+  var textEl = document.getElementById("installText");
+  var btn = document.getElementById("installBtn");
+  var closeBtn = document.getElementById("installClose");
+  var deferredPrompt = null;
+
+  function isStandalone(){
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  }
+  function isDismissed(){
+    try{ return localStorage.getItem(DISMISS_KEY) === "1"; }catch(e){ return false; }
+  }
+  function dismiss(){
+    try{ localStorage.setItem(DISMISS_KEY, "1"); }catch(e){}
+    bar.hidden = true;
+  }
+
+  if (isStandalone() || isDismissed()) return;
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+  if (isIOS){
+    textEl.innerHTML = '<b>Кортек</b>-ті қосымша ретінде орнату: төмендегі бөлісу (Share) белгісін басып, «Add to Home Screen»-ді таңдаңыз.';
+    btn.hidden = true;
+    bar.hidden = false;
+  } else {
+    window.addEventListener("beforeinstallprompt", function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      textEl.innerHTML = '<b>Кортек</b> қосымшасын телефоныңызға орнатыңыз.';
+      btn.hidden = false;
+      bar.hidden = false;
+    });
+  }
+
+  btn.addEventListener("click", function(){
+    if (!deferredPrompt) return;
+    btn.disabled = true;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.finally(function(){
+      deferredPrompt = null;
+      bar.hidden = true;
+    });
+  });
+
+  closeBtn.addEventListener("click", dismiss);
+
+  window.addEventListener("appinstalled", function(){
+    bar.hidden = true;
+  });
+})();
 
 })();
 </script>
