@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="kk">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Кортек Калькулятор</title>
+<title>Cortec Calculator</title>
 <meta name="theme-color" content="#0b5e6b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Кортек">
+<meta name="apple-mobile-web-app-title" content="Cortec">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b5e6b'/%3E%3Ctext x='50' y='66' font-size='52' font-family='Arial,sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b5e6b'/%3E%3Ctext x='50' y='66' font-size='52' font-family='Arial,sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.json">
@@ -279,8 +279,8 @@
 <div class="install-bar" id="installBar" hidden>
   <span class="install-icon">📲</span>
   <span class="install-text" id="installText"></span>
-  <button class="install-btn" id="installBtn" hidden>Орнату</button>
-  <button class="install-close" id="installClose" aria-label="Жабу">&times;</button>
+  <button class="install-btn" id="installBtn" hidden>Install</button>
+  <button class="install-close" id="installClose" aria-label="Close">&times;</button>
 </div>
 <main id="app"></main>
 <footer>© Support: <a href="mailto:nursultan.kadirov@ten.com">nursultan.kadirov@ten.com</a></footer>
@@ -403,7 +403,7 @@ function renderTopbar(calc){
   if (calc){
     var back = document.createElement("button");
     back.className = "back-btn";
-    back.innerHTML = "&larr; Артқа";
+    back.innerHTML = "&larr; Back";
     back.onclick = goHome;
     bar.appendChild(back);
 
@@ -414,7 +414,7 @@ function renderTopbar(calc){
   } else {
     var titles2 = document.createElement("div");
     titles2.className = "topbar-titles";
-    titles2.innerHTML = "<h1>Кортек Калькулятор</h1><p>Cortec VpCI дозалау калькуляторлары</p>";
+    titles2.innerHTML = "<h1>Cortec Calculator</h1><p>Dosing calculators for Cortec VpCI products</p>";
     bar.appendChild(titles2);
   }
 }
@@ -436,7 +436,7 @@ function renderDashboard(){
 
   var intro = document.createElement("p");
   intro.className = "dash-intro";
-  intro.textContent = "Есептегішті таңдаңыз:";
+  intro.textContent = "Choose a calculator:";
   app.appendChild(intro);
 
   var list = document.createElement("ul");
@@ -474,7 +474,7 @@ function renderCalcPage(id){
 
   var handler = TYPE_HANDLERS[calc.type];
   if (!handler){
-    app.innerHTML = '<div class="card">Бұл калькулятор түрі әлі қосылмаған.</div>';
+    app.innerHTML = '<div class="card">This calculator type is not available yet.</div>';
     return;
   }
   handler(calc, app);
@@ -495,24 +495,24 @@ TYPE_HANDLERS.pipe = function(calc, app){
   var state = { size: "", length: "" };
   var constants = getConstants(calc);
 
-  app.appendChild(sectionTitle("Кіріс мәліметтер"));
+  app.appendChild(sectionTitle("Inputs"));
   var inputsCard = card();
-  inputsCard.appendChild(numberField("Құбыр өлшемі (Pipe Size, дюйм \")", state, "size", "0.1", function(){ update(); }, "мыс. 3"));
-  inputsCard.appendChild(numberField("Ұзындығы (Length, метр)", state, "length", "0.1", function(){ update(); }, "мыс. 158"));
+  inputsCard.appendChild(numberField("Pipe Size (inch, \")", state, "size", "0.1", function(){ update(); }, "e.g. 3"));
+  inputsCard.appendChild(numberField("Length (meter)", state, "length", "0.1", function(){ update(); }, "e.g. 158"));
   app.appendChild(inputsCard);
 
-  app.appendChild(sectionTitle("Нәтиже"));
+  app.appendChild(sectionTitle("Results"));
   var resultsWrap = document.createElement("div");
   resultsWrap.className = "results";
   app.appendChild(resultsWrap);
 
   var note = document.createElement("p");
   note.className = "example-note";
-  note.textContent = "Тексеру мысалы: Size=3\", Length=158 m → Diameter=76.2 mm, Volume=0.72 m³, Required=0.72 L";
+  note.textContent = "Reference example: Size=3\", Length=158 m → Diameter=76.2 mm, Volume=0.72 m³, Required=0.72 L";
   app.appendChild(note);
 
   app.appendChild(settingsBlock(calc, constants, [
-    { key: "rate", label: "Rate (L VpCI-337W / м³)", step: "0.01" }
+    { key: "rate", label: "Rate (L VpCI-337W / m³)", step: "0.01" }
   ], function(){ constants = getConstants(calc); update(); }));
 
   function update(){
@@ -524,9 +524,9 @@ TYPE_HANDLERS.pipe = function(calc, app){
 
     resultsWrap.innerHTML = "";
     resultsWrap.appendChild(resultCard([
-      { label: "Құбыр диаметрі (Diameter)", value: fmt(diameterMm, 2), unit: "мм" },
-      { label: "Құбыр көлемі (Volume)", value: fmt(volumeM3, 3), unit: "м³" },
-      { label: "Қажетті " + calc.code, value: fmt(requiredL, 3), unit: "л" }
+      { label: "Pipe Diameter", value: fmt(diameterMm, 2), unit: "mm" },
+      { label: "Pipe Volume", value: fmt(volumeM3, 3), unit: "m³" },
+      { label: "Required " + calc.code, value: fmt(requiredL, 3), unit: "L" }
     ]));
   }
   update();
@@ -538,23 +538,23 @@ TYPE_HANDLERS.powder = function(calc, app){
   var state = { water: "" };
   var constants = getConstants(calc);
 
-  app.appendChild(sectionTitle("Кіріс мәліметтер"));
+  app.appendChild(sectionTitle("Inputs"));
   var inputsCard = card();
-  inputsCard.appendChild(numberField("Судың көлемі (Volume of Water, л)", state, "water", "0.1", function(){ update(); }, "мыс. 58"));
+  inputsCard.appendChild(numberField("Volume of Water (L)", state, "water", "0.1", function(){ update(); }, "e.g. 58"));
   app.appendChild(inputsCard);
 
-  app.appendChild(sectionTitle("Нәтиже"));
+  app.appendChild(sectionTitle("Results"));
   var resultsWrap = document.createElement("div");
   resultsWrap.className = "results";
   app.appendChild(resultsWrap);
 
   var note = document.createElement("p");
   note.className = "example-note";
-  note.textContent = "Тексеру мысалы: Water=58 L → Grams=1624 г, KG=1.62 кг";
+  note.textContent = "Reference example: Water=58 L → Grams=1624 g, KG=1.62 kg";
   app.appendChild(note);
 
   app.appendChild(settingsBlock(calc, constants, [
-    { key: "rate", label: "Rate (г / л су)", step: "0.1" }
+    { key: "rate", label: "Rate (g / L water)", step: "0.1" }
   ], function(){ constants = getConstants(calc); update(); }));
 
   function update(){
@@ -564,8 +564,8 @@ TYPE_HANDLERS.powder = function(calc, app){
 
     resultsWrap.innerHTML = "";
     resultsWrap.appendChild(resultCard([
-      { label: "Ұнтақ салмағы (Grams)", value: fmt(grams, 1), unit: "г" },
-      { label: "Килограмм (KG)", value: fmt(kg, 3), unit: "кг" }
+      { label: "Grams", value: fmt(grams, 1), unit: "g" },
+      { label: "KG", value: fmt(kg, 3), unit: "kg" }
     ]));
   }
   update();
@@ -582,19 +582,19 @@ TYPE_HANDLERS.mix = function(calc, app){
     { key: "heavy", label: "Heavy Cleaning" }
   ];
 
-  app.appendChild(sectionTitle("Кіріс мәліметтер"));
+  app.appendChild(sectionTitle("Inputs"));
   var inputsCard = card();
-  inputsCard.appendChild(numberField("Судың көлемі (Volume of Water, л)", state, "water", "0.1", function(){ update(); }, "мыс. 20"));
+  inputsCard.appendChild(numberField("Volume of Water (L)", state, "water", "0.1", function(){ update(); }, "e.g. 20"));
   app.appendChild(inputsCard);
 
-  app.appendChild(sectionTitle("Нәтиже"));
+  app.appendChild(sectionTitle("Results"));
   var resultsWrap = document.createElement("div");
   resultsWrap.className = "results";
   app.appendChild(resultsWrap);
 
   var note = document.createElement("p");
   note.className = "example-note";
-  note.textContent = "Пайыздар " + calc.code + " үшін бөлек бапталады, басқа калькулятормен бірікпейді.";
+  note.textContent = calc.code + " percentages are configured independently and are never combined with another calculator.";
   app.appendChild(note);
 
   app.appendChild(settingsBlock(calc, constants, LEVELS.map(function(l){
@@ -610,8 +610,8 @@ TYPE_HANDLERS.mix = function(calc, app){
       var mL = waterL * 1000 * (pct / 100);
       var L = mL / 1000;
       var rc = resultCard([
-        { label: "Қоспа (Additive, мл)", value: fmt(mL, 1), unit: "мл" },
-        { label: "Қоспа (Additive, л)", value: fmt(L, 3), unit: "л" }
+        { label: "Additive (mL)", value: fmt(mL, 1), unit: "mL" },
+        { label: "Additive (L)", value: fmt(L, 3), unit: "L" }
       ], level.label + " (" + fmt(pct, 2) + "%)");
       resultsWrap.appendChild(rc);
     });
@@ -680,7 +680,7 @@ function settingsBlock(calc, constants, fields, onChange){
   var details = document.createElement("details");
   details.className = "settings";
   var summary = document.createElement("summary");
-  summary.innerHTML = '<span class="arrow">&#9656;</span> Баптаулар (Rate / Percentage)';
+  summary.innerHTML = '<span class="arrow">&#9656;</span> Settings (Rate / Percentage)';
   details.appendChild(summary);
 
   var c = card();
@@ -710,7 +710,7 @@ function settingsBlock(calc, constants, fields, onChange){
   var resetBtn = document.createElement("button");
   resetBtn.type = "button";
   resetBtn.className = "reset-btn";
-  resetBtn.textContent = "Әдепкі мәндерге қайтару";
+  resetBtn.textContent = "Restore defaults";
   resetBtn.onclick = function(){
     resetConstants(calc);
     renderCalcPage(calc.id);
@@ -719,7 +719,7 @@ function settingsBlock(calc, constants, fields, onChange){
 
   var hint = document.createElement("p");
   hint.className = "hint";
-  hint.textContent = "Бұл мәндер осы құрылғыда сақталады.";
+  hint.textContent = "These values are saved on this device.";
   c.appendChild(hint);
 
   details.appendChild(c);
@@ -743,10 +743,10 @@ function render(){
 
 render();
 
-/* Service worker: оффлайн жұмыс және "Add to Home Screen"-нің толық
-   орнатылатын қосымша ретінде танылуы үшін. http(s) хостингте ғана
-   жұмыс істейді (file:// ашқанда браузер шектеуімен өшіп қалады,
-   бұл қалыпты жағдай — қалған функционалға әсер етпейді). */
+/* Service worker: enables offline use and lets "Add to Home Screen"
+   register as a fully installable app. Only works on http(s) hosting
+   (opening the file directly via file:// skips this due to browser
+   restrictions — that's expected and doesn't affect anything else). */
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
   window.addEventListener("load", function(){
     navigator.serviceWorker.register("sw.js").catch(function(){});
@@ -756,7 +756,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 /* ---------------------------------------------------------------------
    11. INSTALL BANNER
    Android/Chrome: captures the native beforeinstallprompt event and
-   offers a real "Орнату" (Install) button instead of relying on the
+   offers a real "Install" button instead of relying on the
    browser's own menu. iOS Safari has no such API, so it gets a short
    instruction line instead. Hidden entirely once already installed
    (standalone display mode) or after the user dismisses it once.
@@ -786,14 +786,14 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
 
   if (isIOS){
-    textEl.innerHTML = '<b>Кортек</b>-ті қосымша ретінде орнату: төмендегі бөлісу (Share) белгісін басып, «Add to Home Screen»-ді таңдаңыз.';
+    textEl.innerHTML = 'Install <b>Cortec Calculator</b>: tap the Share icon below, then choose "Add to Home Screen".';
     btn.hidden = true;
     bar.hidden = false;
   } else {
     window.addEventListener("beforeinstallprompt", function(e){
       e.preventDefault();
       deferredPrompt = e;
-      textEl.innerHTML = '<b>Кортек</b> қосымшасын телефоныңызға орнатыңыз.';
+      textEl.innerHTML = 'Install <b>Cortec Calculator</b> on your phone.';
       btn.hidden = false;
       bar.hidden = false;
     });

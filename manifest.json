@@ -1,7 +1,7 @@
 {
-  "name": "Кортек Калькулятор",
-  "short_name": "Кортек",
-  "description": "Cortec VpCI өнімдерін дозалауға арналған калькуляторлар жинағы",
+  "name": "Cortec Calculator",
+  "short_name": "Cortec",
+  "description": "A collection of dosing calculators for Cortec VpCI products",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
