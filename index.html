@@ -201,7 +201,6 @@
     margin-bottom:6px;
     color:var(--text);
   }
-  .field .hint{font-size:12px;color:var(--muted);margin-top:5px;}
   .field input[type=number]{
     width:100%;
     padding:11px 12px;
@@ -213,20 +212,6 @@
     outline:none;
   }
   .field input[type=number]:focus{border-color:var(--accent-2);}
-  .const-row{display:flex;align-items:center;gap:10px;}
-  .const-row input{flex:1;}
-  .const-unit{font-size:13px;color:var(--muted);white-space:nowrap;}
-  .reset-btn{
-    margin-top:12px;
-    background:none;
-    border:1px solid var(--border);
-    color:var(--muted);
-    font-size:12.5px;
-    padding:7px 12px;
-    border-radius:9px;
-    cursor:pointer;
-  }
-  .reset-btn:active{background:var(--bg);}
 
   .results{display:flex;flex-direction:column;gap:10px;}
   .result-card{
@@ -256,21 +241,6 @@
     margin-top:14px;
     line-height:1.5;
   }
-  details.settings{margin-top:22px;}
-  details.settings > summary{
-    cursor:pointer;
-    font-size:13px;
-    font-weight:700;
-    color:var(--muted);
-    list-style:none;
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  details.settings > summary::-webkit-details-marker{display:none;}
-  details.settings > summary .arrow{transition:transform .15s;font-size:11px;}
-  details.settings[open] > summary .arrow{transform:rotate(90deg);}
-  details.settings .card{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -329,41 +299,7 @@ var CALCULATORS = [
 ];
 
 /* ---------------------------------------------------------------------
-   2. SETTINGS PERSISTENCE (localStorage — device-only, no cloud)
---------------------------------------------------------------------- */
-
-var STORAGE_KEY = "cortec_calculator_settings_v1";
-
-function loadAllSettings(){
-  try{
-    var raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  }catch(e){ return {}; }
-}
-function saveAllSettings(all){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); }catch(e){}
-}
-function getConstants(calc){
-  var all = loadAllSettings();
-  var saved = all[calc.id] || {};
-  var merged = {};
-  for (var k in calc.defaults) merged[k] = (saved[k] !== undefined && saved[k] !== null && saved[k] !== "") ? Number(saved[k]) : calc.defaults[k];
-  return merged;
-}
-function setConstant(calc, key, value){
-  var all = loadAllSettings();
-  if (!all[calc.id]) all[calc.id] = {};
-  all[calc.id][key] = value;
-  saveAllSettings(all);
-}
-function resetConstants(calc){
-  var all = loadAllSettings();
-  delete all[calc.id];
-  saveAllSettings(all);
-}
-
-/* ---------------------------------------------------------------------
-   3. NUMBER FORMATTING
+   2. NUMBER FORMATTING
 --------------------------------------------------------------------- */
 
 function fmt(num, decimals){
@@ -376,7 +312,7 @@ function fmt(num, decimals){
 }
 
 /* ---------------------------------------------------------------------
-   4. ROUTER
+   3. ROUTER
 --------------------------------------------------------------------- */
 
 function parseHash(){
@@ -394,7 +330,7 @@ function goHome(){ location.hash = "#/"; }
 function goCalc(id){ location.hash = "#/calc/" + id; }
 
 /* ---------------------------------------------------------------------
-   5. RENDER: TOPBAR
+   4. RENDER: TOPBAR
 --------------------------------------------------------------------- */
 
 function renderTopbar(calc){
@@ -426,7 +362,7 @@ function escapeHtml(s){
 }
 
 /* ---------------------------------------------------------------------
-   6. RENDER: DASHBOARD
+   5. RENDER: DASHBOARD
 --------------------------------------------------------------------- */
 
 function renderDashboard(){
@@ -461,7 +397,7 @@ function renderDashboard(){
 }
 
 /* ---------------------------------------------------------------------
-   7. RENDER: CALCULATOR PAGE (generic shell)
+   6. RENDER: CALCULATOR PAGE (generic shell)
 --------------------------------------------------------------------- */
 
 function renderCalcPage(id){
@@ -481,19 +417,18 @@ function renderCalcPage(id){
 }
 
 /* ---------------------------------------------------------------------
-   8. TYPE HANDLERS
-   Each handler builds inputs + editable constants + live results
-   for one calculator "shape". New calculators of the same shape
-   reuse these as-is.
+   7. TYPE HANDLERS
+   Each handler builds inputs + live results for one calculator
+   "shape". New calculators of the same shape reuse these as-is.
 --------------------------------------------------------------------- */
 
 var TYPE_HANDLERS = {};
 
-/* ---- 8a. "pipe" — VpCI-337 W -------------------------------------- */
+/* ---- 7a. "pipe" — VpCI-337 W -------------------------------------- */
 
 TYPE_HANDLERS.pipe = function(calc, app){
   var state = { size: "", length: "" };
-  var constants = getConstants(calc);
+  var constants = calc.defaults;
 
   app.appendChild(sectionTitle("Inputs"));
   var inputsCard = card();
@@ -510,10 +445,6 @@ TYPE_HANDLERS.pipe = function(calc, app){
   note.className = "example-note";
   note.textContent = "Reference example: Size=3\", Length=158 m → Diameter=76.2 mm, Volume=0.72 m³, Required=0.72 L";
   app.appendChild(note);
-
-  app.appendChild(settingsBlock(calc, constants, [
-    { key: "rate", label: "Rate (L VpCI-337W / m³)", step: "0.01" }
-  ], function(){ constants = getConstants(calc); update(); }));
 
   function update(){
     var sizeIn = parseFloat(state.size) || 0;
@@ -532,11 +463,11 @@ TYPE_HANDLERS.pipe = function(calc, app){
   update();
 };
 
-/* ---- 8b. "powder" — VpCI-609 --------------------------------------- */
+/* ---- 7b. "powder" — VpCI-609 --------------------------------------- */
 
 TYPE_HANDLERS.powder = function(calc, app){
   var state = { water: "" };
-  var constants = getConstants(calc);
+  var constants = calc.defaults;
 
   app.appendChild(sectionTitle("Inputs"));
   var inputsCard = card();
@@ -553,10 +484,6 @@ TYPE_HANDLERS.powder = function(calc, app){
   note.textContent = "Reference example: Water=58 L → Grams=1624 g, KG=1.62 kg";
   app.appendChild(note);
 
-  app.appendChild(settingsBlock(calc, constants, [
-    { key: "rate", label: "Rate (g / L water)", step: "0.1" }
-  ], function(){ constants = getConstants(calc); update(); }));
-
   function update(){
     var waterL = parseFloat(state.water) || 0;
     var grams = waterL * constants.rate;
@@ -571,11 +498,11 @@ TYPE_HANDLERS.powder = function(calc, app){
   update();
 };
 
-/* ---- 8c. "mix" — VpCI-418 / VpCI-414 -------------------------------- */
+/* ---- 7c. "mix" — VpCI-418 / VpCI-414 -------------------------------- */
 
 TYPE_HANDLERS.mix = function(calc, app){
   var state = { water: "" };
-  var constants = getConstants(calc);
+  var constants = calc.defaults;
   var LEVELS = [
     { key: "light", label: "Light Cleaning" },
     { key: "normal", label: "Normal Cleaning" },
@@ -597,10 +524,6 @@ TYPE_HANDLERS.mix = function(calc, app){
   note.textContent = calc.code + " percentages are configured independently and are never combined with another calculator.";
   app.appendChild(note);
 
-  app.appendChild(settingsBlock(calc, constants, LEVELS.map(function(l){
-    return { key: l.key, label: l.label + " (%)", step: "0.1" };
-  }), function(){ constants = getConstants(calc); update(); }));
-
   function update(){
     var waterL = parseFloat(state.water) || 0;
 
@@ -620,7 +543,7 @@ TYPE_HANDLERS.mix = function(calc, app){
 };
 
 /* ---------------------------------------------------------------------
-   9. SHARED UI BUILDERS
+   8. SHARED UI BUILDERS
 --------------------------------------------------------------------- */
 
 function sectionTitle(text){
@@ -676,58 +599,8 @@ function resultCard(rows, groupTitle){
   return d;
 }
 
-function settingsBlock(calc, constants, fields, onChange){
-  var details = document.createElement("details");
-  details.className = "settings";
-  var summary = document.createElement("summary");
-  summary.innerHTML = '<span class="arrow">&#9656;</span> Settings (Rate / Percentage)';
-  details.appendChild(summary);
-
-  var c = card();
-  fields.forEach(function(f){
-    var wrap = document.createElement("div");
-    wrap.className = "field";
-    var label = document.createElement("label");
-    label.textContent = f.label;
-    var row = document.createElement("div");
-    row.className = "const-row";
-    var input = document.createElement("input");
-    input.type = "number";
-    input.step = f.step || "any";
-    input.inputMode = "decimal";
-    input.value = constants[f.key];
-    input.addEventListener("input", function(){
-      var v = parseFloat(input.value);
-      if (!isNaN(v)) setConstant(calc, f.key, v);
-      onChange();
-    });
-    row.appendChild(input);
-    wrap.appendChild(label);
-    wrap.appendChild(row);
-    c.appendChild(wrap);
-  });
-
-  var resetBtn = document.createElement("button");
-  resetBtn.type = "button";
-  resetBtn.className = "reset-btn";
-  resetBtn.textContent = "Restore defaults";
-  resetBtn.onclick = function(){
-    resetConstants(calc);
-    renderCalcPage(calc.id);
-  };
-  c.appendChild(resetBtn);
-
-  var hint = document.createElement("p");
-  hint.className = "hint";
-  hint.textContent = "These values are saved on this device.";
-  c.appendChild(hint);
-
-  details.appendChild(c);
-  return details;
-}
-
 /* ---------------------------------------------------------------------
-   10. MAIN RENDER DISPATCH
+   9. MAIN RENDER DISPATCH
 --------------------------------------------------------------------- */
 
 function render(){
@@ -754,7 +627,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 }
 
 /* ---------------------------------------------------------------------
-   11. INSTALL BANNER
+   10. INSTALL BANNER
    Android/Chrome: captures the native beforeinstallprompt event and
    offers a real "Install" button instead of relying on the
    browser's own menu. iOS Safari has no such API, so it gets a short
