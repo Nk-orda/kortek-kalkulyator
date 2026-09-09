@@ -1,5 +1,5 @@
 /* Cortec Calculator — simple service worker for offline caching */
-var CACHE_NAME = "kortek-calc-v3";
+var CACHE_NAME = "kortek-calc-v4";
 var FILES_TO_CACHE = [
   "./",
   "./index.html",
