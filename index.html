@@ -212,6 +212,24 @@
     outline:none;
   }
   .field input[type=number]:focus{border-color:var(--accent-2);}
+  .toggle-group{display:flex;gap:8px;}
+  .toggle-btn{
+    flex:1;
+    padding:10px 8px;
+    font-size:14px;
+    font-weight:700;
+    border:1.5px solid var(--border);
+    border-radius:10px;
+    background:var(--bg);
+    color:var(--text);
+    cursor:pointer;
+  }
+  .toggle-btn.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  @media (prefers-color-scheme: dark){ .toggle-btn.active{background:var(--accent-2);border-color:var(--accent-2);color:#0d1720;} }
 
   .results{display:flex;flex-direction:column;gap:10px;}
   .result-card{
@@ -278,9 +296,9 @@ var CALCULATORS = [
   {
     id: "609",
     code: "VpCI-609",
-    title: "Powder Dosage Volume Calculator",
-    type: "powder",
-    defaults: { rate: 28 }
+    title: "Pipe Dosage & Water Calculator",
+    type: "pipe_powder",
+    defaults: { rate: 28, dosageOptions: [300, 500] }
   },
   {
     id: "418",
@@ -463,15 +481,20 @@ TYPE_HANDLERS.pipe = function(calc, app){
   update();
 };
 
-/* ---- 7b. "powder" — VpCI-609 --------------------------------------- */
+/* ---- 7b. "pipe_powder" — VpCI-609 ----------------------------------
+   Pipe internal volume (from size + length) × dosage rate (g/m3)
+   gives the required powder. Required water is derived from the
+   powder's dissolving ratio (g per liter of water). */
 
-TYPE_HANDLERS.powder = function(calc, app){
-  var state = { water: "" };
+TYPE_HANDLERS.pipe_powder = function(calc, app){
   var constants = calc.defaults;
+  var state = { size: "", length: "", dosage: constants.dosageOptions[0] };
 
   app.appendChild(sectionTitle("Inputs"));
   var inputsCard = card();
-  inputsCard.appendChild(numberField("Volume of Water (L)", state, "water", "0.1", function(){ update(); }, "e.g. 58"));
+  inputsCard.appendChild(numberField("Pipe Size (inch, \")", state, "size", "0.1", function(){ update(); }, "e.g. 8"));
+  inputsCard.appendChild(numberField("Length (meter)", state, "length", "0.1", function(){ update(); }, "e.g. 50"));
+  inputsCard.appendChild(dosageField("Dosage Rate", state, "dosage", constants.dosageOptions, function(){ update(); }));
   app.appendChild(inputsCard);
 
   app.appendChild(sectionTitle("Results"));
@@ -481,19 +504,30 @@ TYPE_HANDLERS.powder = function(calc, app){
 
   var note = document.createElement("p");
   note.className = "example-note";
-  note.textContent = "Reference example: Water=58 L → Grams=1624 g, KG=1.62 kg";
+  note.textContent = "Dosage range: 0.3–0.5 oz/ft³ (300–500 g/m³). Required water assumes " + calc.code + " dissolved at " + constants.rate + " g per liter of water.";
   app.appendChild(note);
 
   function update(){
-    var waterL = parseFloat(state.water) || 0;
-    var grams = waterL * constants.rate;
-    var kg = grams / 1000;
+    var sizeIn = parseFloat(state.size) || 0;
+    var lengthM = parseFloat(state.length) || 0;
+    var dosage = state.dosage;
+    var diameterMm = sizeIn * 25.4;
+    var volumeM3 = Math.PI * Math.pow((diameterMm / 1000 / 2), 2) * lengthM;
+    var requiredG = volumeM3 * dosage;
+    var requiredKg = requiredG / 1000;
+    var waterL = requiredG / constants.rate;
 
     resultsWrap.innerHTML = "";
     resultsWrap.appendChild(resultCard([
-      { label: "Grams", value: fmt(grams, 1), unit: "g" },
-      { label: "KG", value: fmt(kg, 3), unit: "kg" }
-    ]));
+      { label: "Pipe Diameter", value: fmt(diameterMm, 2), unit: "mm" },
+      { label: "Pipe Volume", value: fmt(volumeM3, 3), unit: "m³" },
+      { label: "Dosage Used", value: fmt(dosage, 0), unit: "g/m³" }
+    ], "Pipe"));
+    resultsWrap.appendChild(resultCard([
+      { label: "Required " + calc.code, value: fmt(requiredG, 1), unit: "g" },
+      { label: "Required " + calc.code, value: fmt(requiredKg, 3), unit: "kg" },
+      { label: "Water Needed", value: fmt(waterL, 3), unit: "L" }
+    ], "Dosage"));
   }
   update();
 };
@@ -576,6 +610,32 @@ function numberField(labelText, state, key, step, onInput, placeholder){
   });
   wrap.appendChild(label);
   wrap.appendChild(input);
+  return wrap;
+}
+
+function dosageField(labelText, state, key, options, onChange){
+  var wrap = document.createElement("div");
+  wrap.className = "field";
+  var label = document.createElement("label");
+  label.textContent = labelText;
+  wrap.appendChild(label);
+
+  var group = document.createElement("div");
+  group.className = "toggle-group";
+  options.forEach(function(opt){
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toggle-btn" + (state[key] === opt ? " active" : "");
+    btn.textContent = opt + " g/m³";
+    btn.onclick = function(){
+      state[key] = opt;
+      Array.prototype.forEach.call(group.children, function(b){ b.classList.remove("active"); });
+      btn.classList.add("active");
+      onChange();
+    };
+    group.appendChild(btn);
+  });
+  wrap.appendChild(group);
   return wrap;
 }
 
