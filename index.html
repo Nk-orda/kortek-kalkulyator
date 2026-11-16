@@ -516,7 +516,8 @@ TYPE_HANDLERS.pipe_powder = function(calc, app){
   var state = {
     method: "dust",
     size: "", length: "", dosage: constants.dosageOptions[0],
-    water: "", aqMethod: constants.aqueousMethods[0].key, aqPct: constants.aqueousMethods[0].options[0]
+    aqWaterMode: "direct", water: "", aqSize: "", aqLength: "",
+    aqMethod: constants.aqueousMethods[0].key, aqPct: constants.aqueousMethods[0].options[0]
   };
 
   app.appendChild(sectionTitle("Method"));
@@ -583,7 +584,11 @@ TYPE_HANDLERS.pipe_powder = function(calc, app){
 
     container.appendChild(sectionTitle("Inputs"));
     var inputsCard = card();
-    inputsCard.appendChild(numberField("Water Volume (L)", state, "water", "1", function(){ update(); }, "e.g. 1000"));
+    inputsCard.appendChild(toggleField("Water Source", state, "aqWaterMode", ["direct", "pipe"], function(opt){
+      return opt === "direct" ? "Enter Water Volume" : "Calculate from Pipe Size";
+    }, function(){ renderWaterFields(); update(); }));
+    var waterFieldsWrap = document.createElement("div");
+    inputsCard.appendChild(waterFieldsWrap);
     inputsCard.appendChild(selectField("Application Method", state, "aqMethod", methods.map(function(m){
       return { value: m.key, label: m.label + " (" + m.note + ")" };
     }), function(){
@@ -603,11 +608,21 @@ TYPE_HANDLERS.pipe_powder = function(calc, app){
 
     var note = document.createElement("p");
     note.className = "example-note";
-    note.textContent = "Powder required (kg) = Water volume (L) × (target wt% / 100). Maximum solubility is " + constants.maxSolubilityPct + "% by weight. Optional: add Cortec S-5 wetting agent at " + constants.wettingAgentPct + "% of the " + calc.code + " weight to help the mist spread evenly.";
+    note.textContent = "Powder required (kg) = Water volume (L) × (target wt% / 100). Pipe volume fills with 1 liter of water per liter (1 m³ = 1000 L). Maximum solubility is " + constants.maxSolubilityPct + "% by weight. Optional: add Cortec S-5 wetting agent at " + constants.wettingAgentPct + "% of the " + calc.code + " weight to help the mist spread evenly.";
     container.appendChild(note);
 
     function currentAqMethod(){
       return methods.filter(function(m){ return m.key === state.aqMethod; })[0];
+    }
+
+    function renderWaterFields(){
+      waterFieldsWrap.innerHTML = "";
+      if (state.aqWaterMode === "direct"){
+        waterFieldsWrap.appendChild(numberField("Water Volume (L)", state, "water", "1", update, "e.g. 1000"));
+      } else {
+        waterFieldsWrap.appendChild(numberField("Pipe Size (inch, \")", state, "aqSize", "0.1", update, "e.g. 8"));
+        waterFieldsWrap.appendChild(numberField("Length (meter)", state, "aqLength", "0.1", update, "e.g. 50"));
+      }
     }
 
     function renderPctField(){
@@ -617,7 +632,17 @@ TYPE_HANDLERS.pipe_powder = function(calc, app){
     }
 
     function update(){
-      var waterL = parseFloat(state.water) || 0;
+      var waterL, diameterMm, volumeM3;
+      if (state.aqWaterMode === "pipe"){
+        var sizeIn = parseFloat(state.aqSize) || 0;
+        var lengthM = parseFloat(state.aqLength) || 0;
+        diameterMm = sizeIn * 25.4;
+        volumeM3 = Math.PI * Math.pow((diameterMm / 1000 / 2), 2) * lengthM;
+        waterL = volumeM3 * 1000;
+      } else {
+        waterL = parseFloat(state.water) || 0;
+      }
+
       var pct = state.aqPct;
       var requiredKg = waterL * (pct / 100);
       var requiredG = requiredKg * 1000;
@@ -625,6 +650,13 @@ TYPE_HANDLERS.pipe_powder = function(calc, app){
       var wettingG = requiredG * (constants.wettingAgentPct / 100);
 
       resultsWrap.innerHTML = "";
+      if (state.aqWaterMode === "pipe"){
+        resultsWrap.appendChild(resultCard([
+          { label: "Pipe Diameter", value: fmt(diameterMm, 2), unit: "mm" },
+          { label: "Pipe Volume", value: fmt(volumeM3, 3), unit: "m³" },
+          { label: "Water Needed", value: fmt(waterL, 1), unit: "L" }
+        ], "Pipe"));
+      }
       resultsWrap.appendChild(resultCard([
         { label: "Mixture Ratio", value: fmt(per1000L, 1), unit: "kg / 1000 L" },
         { label: "Required " + calc.code, value: fmt(requiredKg, 3), unit: "kg" },
@@ -635,6 +667,7 @@ TYPE_HANDLERS.pipe_powder = function(calc, app){
       ], "Optional Additive"));
     }
 
+    renderWaterFields();
     renderPctField();
     update();
   }
