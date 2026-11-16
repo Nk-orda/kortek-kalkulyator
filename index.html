@@ -212,6 +212,17 @@
     outline:none;
   }
   .field input[type=number]:focus{border-color:var(--accent-2);}
+  .field select{
+    width:100%;
+    padding:11px 12px;
+    font-size:15px;
+    border:1.5px solid var(--border);
+    border-radius:10px;
+    background:var(--bg);
+    color:var(--text);
+    outline:none;
+  }
+  .field select:focus{border-color:var(--accent-2);}
   .toggle-group{display:flex;gap:8px;}
   .toggle-btn{
     flex:1;
@@ -296,9 +307,19 @@ var CALCULATORS = [
   {
     id: "609",
     code: "VpCI-609",
-    title: "Pipe Dosage & Water Calculator",
+    title: "Dosage & Mixing Calculator",
     type: "pipe_powder",
-    defaults: { rate: 28, dosageOptions: [300, 500] }
+    defaults: {
+      rate: 28,
+      dosageOptions: [300, 500],
+      wettingAgentPct: 0.5,
+      maxSolubilityPct: 15,
+      aqueousMethods: [
+        { key: "fogging", label: "Standard Aqueous Fogging / Misting", note: "Drained spaces", options: [0.25, 0.5] },
+        { key: "hydrotest", label: "Short-Term Hydrotest / Rinse", note: "1–3 months protection", options: [1.0, 1.5] },
+        { key: "layup", label: "Long-Term Aqueous Layup / Flush", note: "6–24 months protection", options: [5.0, 10.0] }
+      ]
+    }
   },
   {
     id: "418",
@@ -482,54 +503,143 @@ TYPE_HANDLERS.pipe = function(calc, app){
 };
 
 /* ---- 7b. "pipe_powder" — VpCI-609 ----------------------------------
-   Pipe internal volume (from size + length) × dosage rate (g/m3)
-   gives the required powder. Required water is derived from the
-   powder's dissolving ratio (g per liter of water). */
+   Two independent dosing methods, picked with a top-level toggle:
+   1) Dry Dusting — pipe internal volume (from size + length) × dosage
+      rate (g/m3) gives the required powder; required water is derived
+      from the powder's dissolving ratio (g per liter of water).
+   2) Aqueous Mixing — water volume × target weight% gives the
+      required powder for fogging/misting, hydrotest/rinse, or
+      long-term layup. */
 
 TYPE_HANDLERS.pipe_powder = function(calc, app){
   var constants = calc.defaults;
-  var state = { size: "", length: "", dosage: constants.dosageOptions[0] };
+  var state = {
+    method: "dust",
+    size: "", length: "", dosage: constants.dosageOptions[0],
+    water: "", aqMethod: constants.aqueousMethods[0].key, aqPct: constants.aqueousMethods[0].options[0]
+  };
 
-  app.appendChild(sectionTitle("Inputs"));
-  var inputsCard = card();
-  inputsCard.appendChild(numberField("Pipe Size (inch, \")", state, "size", "0.1", function(){ update(); }, "e.g. 8"));
-  inputsCard.appendChild(numberField("Length (meter)", state, "length", "0.1", function(){ update(); }, "e.g. 50"));
-  inputsCard.appendChild(dosageField("Dosage Rate", state, "dosage", constants.dosageOptions, function(){ update(); }));
-  app.appendChild(inputsCard);
+  app.appendChild(sectionTitle("Method"));
+  var methodCard = card();
+  methodCard.appendChild(toggleField("", state, "method", ["dust", "aqueous"], function(opt){
+    return opt === "dust" ? "Dry Dusting (g/m³)" : "Aqueous Mixing (wt%)";
+  }, function(){ renderBody(); }));
+  app.appendChild(methodCard);
 
-  app.appendChild(sectionTitle("Results"));
-  var resultsWrap = document.createElement("div");
-  resultsWrap.className = "results";
-  app.appendChild(resultsWrap);
+  var bodyWrap = document.createElement("div");
+  app.appendChild(bodyWrap);
 
-  var note = document.createElement("p");
-  note.className = "example-note";
-  note.textContent = "Dosage range: 0.3–0.5 oz/ft³ (300–500 g/m³). Required water assumes " + calc.code + " dissolved at " + constants.rate + " g per liter of water.";
-  app.appendChild(note);
-
-  function update(){
-    var sizeIn = parseFloat(state.size) || 0;
-    var lengthM = parseFloat(state.length) || 0;
-    var dosage = state.dosage;
-    var diameterMm = sizeIn * 25.4;
-    var volumeM3 = Math.PI * Math.pow((diameterMm / 1000 / 2), 2) * lengthM;
-    var requiredG = volumeM3 * dosage;
-    var requiredKg = requiredG / 1000;
-    var waterL = requiredG / constants.rate;
-
-    resultsWrap.innerHTML = "";
-    resultsWrap.appendChild(resultCard([
-      { label: "Pipe Diameter", value: fmt(diameterMm, 2), unit: "mm" },
-      { label: "Pipe Volume", value: fmt(volumeM3, 3), unit: "m³" },
-      { label: "Dosage Used", value: fmt(dosage, 0), unit: "g/m³" }
-    ], "Pipe"));
-    resultsWrap.appendChild(resultCard([
-      { label: "Required " + calc.code, value: fmt(requiredG, 1), unit: "g" },
-      { label: "Required " + calc.code, value: fmt(requiredKg, 3), unit: "kg" },
-      { label: "Water Needed", value: fmt(waterL, 3), unit: "L" }
-    ], "Dosage"));
+  function renderBody(){
+    bodyWrap.innerHTML = "";
+    if (state.method === "dust") renderDustMethod(bodyWrap);
+    else renderAqueousMethod(bodyWrap);
   }
-  update();
+
+  function renderDustMethod(container){
+    container.appendChild(sectionTitle("Inputs"));
+    var inputsCard = card();
+    inputsCard.appendChild(numberField("Pipe Size (inch, \")", state, "size", "0.1", function(){ update(); }, "e.g. 8"));
+    inputsCard.appendChild(numberField("Length (meter)", state, "length", "0.1", function(){ update(); }, "e.g. 50"));
+    inputsCard.appendChild(toggleField("Dosage Rate", state, "dosage", constants.dosageOptions, function(opt){ return opt + " g/m³"; }, update));
+    container.appendChild(inputsCard);
+
+    container.appendChild(sectionTitle("Results"));
+    var resultsWrap = document.createElement("div");
+    resultsWrap.className = "results";
+    container.appendChild(resultsWrap);
+
+    var note = document.createElement("p");
+    note.className = "example-note";
+    note.textContent = "Dosage range: 0.3–0.5 oz/ft³ (300–500 g/m³). Required water assumes " + calc.code + " dissolved at " + constants.rate + " g per liter of water.";
+    container.appendChild(note);
+
+    function update(){
+      var sizeIn = parseFloat(state.size) || 0;
+      var lengthM = parseFloat(state.length) || 0;
+      var dosage = state.dosage;
+      var diameterMm = sizeIn * 25.4;
+      var volumeM3 = Math.PI * Math.pow((diameterMm / 1000 / 2), 2) * lengthM;
+      var requiredG = volumeM3 * dosage;
+      var requiredKg = requiredG / 1000;
+      var waterL = requiredG / constants.rate;
+
+      resultsWrap.innerHTML = "";
+      resultsWrap.appendChild(resultCard([
+        { label: "Pipe Diameter", value: fmt(diameterMm, 2), unit: "mm" },
+        { label: "Pipe Volume", value: fmt(volumeM3, 3), unit: "m³" },
+        { label: "Dosage Used", value: fmt(dosage, 0), unit: "g/m³" }
+      ], "Pipe"));
+      resultsWrap.appendChild(resultCard([
+        { label: "Required " + calc.code, value: fmt(requiredG, 1), unit: "g" },
+        { label: "Required " + calc.code, value: fmt(requiredKg, 3), unit: "kg" },
+        { label: "Water Needed", value: fmt(waterL, 3), unit: "L" }
+      ], "Dosage"));
+    }
+    update();
+  }
+
+  function renderAqueousMethod(container){
+    var methods = constants.aqueousMethods;
+
+    container.appendChild(sectionTitle("Inputs"));
+    var inputsCard = card();
+    inputsCard.appendChild(numberField("Water Volume (L)", state, "water", "1", function(){ update(); }, "e.g. 1000"));
+    inputsCard.appendChild(selectField("Application Method", state, "aqMethod", methods.map(function(m){
+      return { value: m.key, label: m.label + " (" + m.note + ")" };
+    }), function(){
+      var m = currentAqMethod();
+      state.aqPct = m.options[0];
+      renderPctField();
+      update();
+    }));
+    var pctWrap = document.createElement("div");
+    inputsCard.appendChild(pctWrap);
+    container.appendChild(inputsCard);
+
+    container.appendChild(sectionTitle("Results"));
+    var resultsWrap = document.createElement("div");
+    resultsWrap.className = "results";
+    container.appendChild(resultsWrap);
+
+    var note = document.createElement("p");
+    note.className = "example-note";
+    note.textContent = "Powder required (kg) = Water volume (L) × (target wt% / 100). Maximum solubility is " + constants.maxSolubilityPct + "% by weight. Optional: add Cortec S-5 wetting agent at " + constants.wettingAgentPct + "% of the " + calc.code + " weight to help the mist spread evenly.";
+    container.appendChild(note);
+
+    function currentAqMethod(){
+      return methods.filter(function(m){ return m.key === state.aqMethod; })[0];
+    }
+
+    function renderPctField(){
+      pctWrap.innerHTML = "";
+      var m = currentAqMethod();
+      pctWrap.appendChild(toggleField("Concentration (wt%)", state, "aqPct", m.options, function(opt){ return fmt(opt, 2) + "%"; }, update));
+    }
+
+    function update(){
+      var waterL = parseFloat(state.water) || 0;
+      var pct = state.aqPct;
+      var requiredKg = waterL * (pct / 100);
+      var requiredG = requiredKg * 1000;
+      var per1000L = pct * 10;
+      var wettingG = requiredG * (constants.wettingAgentPct / 100);
+
+      resultsWrap.innerHTML = "";
+      resultsWrap.appendChild(resultCard([
+        { label: "Mixture Ratio", value: fmt(per1000L, 1), unit: "kg / 1000 L" },
+        { label: "Required " + calc.code, value: fmt(requiredKg, 3), unit: "kg" },
+        { label: "Required " + calc.code, value: fmt(requiredG, 1), unit: "g" }
+      ], currentAqMethod().label));
+      resultsWrap.appendChild(resultCard([
+        { label: "Optional S-5 Wetting Agent", value: fmt(wettingG, 1), unit: "g" }
+      ], "Optional Additive"));
+    }
+
+    renderPctField();
+    update();
+  }
+
+  renderBody();
 };
 
 /* ---- 7c. "mix" — VpCI-418 / VpCI-414 -------------------------------- */
@@ -613,12 +723,14 @@ function numberField(labelText, state, key, step, onInput, placeholder){
   return wrap;
 }
 
-function dosageField(labelText, state, key, options, onChange){
+function toggleField(labelText, state, key, options, formatLabel, onChange){
   var wrap = document.createElement("div");
   wrap.className = "field";
-  var label = document.createElement("label");
-  label.textContent = labelText;
-  wrap.appendChild(label);
+  if (labelText){
+    var label = document.createElement("label");
+    label.textContent = labelText;
+    wrap.appendChild(label);
+  }
 
   var group = document.createElement("div");
   group.className = "toggle-group";
@@ -626,7 +738,7 @@ function dosageField(labelText, state, key, options, onChange){
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "toggle-btn" + (state[key] === opt ? " active" : "");
-    btn.textContent = opt + " g/m³";
+    btn.textContent = formatLabel(opt);
     btn.onclick = function(){
       state[key] = opt;
       Array.prototype.forEach.call(group.children, function(b){ b.classList.remove("active"); });
@@ -636,6 +748,29 @@ function dosageField(labelText, state, key, options, onChange){
     group.appendChild(btn);
   });
   wrap.appendChild(group);
+  return wrap;
+}
+
+function selectField(labelText, state, key, options, onChange){
+  var wrap = document.createElement("div");
+  wrap.className = "field";
+  var label = document.createElement("label");
+  label.textContent = labelText;
+  wrap.appendChild(label);
+
+  var select = document.createElement("select");
+  options.forEach(function(opt){
+    var o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    if (state[key] === opt.value) o.selected = true;
+    select.appendChild(o);
+  });
+  select.addEventListener("change", function(){
+    state[key] = select.value;
+    onChange();
+  });
+  wrap.appendChild(select);
   return wrap;
 }
 
